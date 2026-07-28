@@ -560,16 +560,26 @@
   .modal-btn:active { transform: scale(0.97); }
 
   /* ===== Daily Plan ===== */
-  .plan-header {
+  .plan-tabs {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     margin-bottom: 14px;
   }
-  .plan-title {
-    font-size: 17px;
+  .plan-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 13px;
     font-weight: 600;
+    color: var(--text-muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.18s;
   }
+  .plan-tab.active { color: var(--amber); background: var(--amber-bg); border-color: var(--amber-light); }
   .plan-add-btn {
     width: 32px; height: 32px;
     border-radius: 50%;
@@ -585,7 +595,6 @@
   }
   .plan-add-btn:hover { background: var(--amber-bg); border-color: var(--amber); }
   .plan-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-  .plan-block + .plan-block { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border); }
   .plan-tip { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.5; }
   .plan-item {
     display: flex;
@@ -1274,31 +1283,18 @@
 
   <!-- ====== Daily Plan ====== -->
   <section class="card">
-    <div class="plan-block">
-      <div class="plan-header">
-        <span class="plan-title">📅 今日计划</span>
-        <button class="plan-add-btn" onclick="togglePlanInput('today')" title="添加任务">+</button>
-      </div>
-      <div class="plan-input-row" id="planInputRow-today" style="display:none;">
-        <input type="text" id="planInput-today" placeholder="输入今日任务..." onkeydown="if(event.key==='Enter')addPlan('today')">
-        <button onclick="addPlan('today')">添加</button>
-      </div>
-      <ul class="plan-list" id="planList-today" data-which="today"></ul>
-      <p id="planEmpty-today" style="text-align:center;color:var(--text-muted);font-size:13px;padding:14px 0;">今日无任务，点击 + 添加</p>
+    <div class="plan-tabs">
+      <div class="plan-tab active" data-w="today" onclick="switchPlanTab('today')">📅 今日计划</div>
+      <div class="plan-tab" data-w="tomorrow" onclick="switchPlanTab('tomorrow')">🌙 明日计划</div>
+      <button class="plan-add-btn" onclick="togglePlanInput()" title="添加任务">+</button>
     </div>
-    <div class="plan-block">
-      <div class="plan-header">
-        <span class="plan-title">🌙 明日计划</span>
-        <button class="plan-add-btn" onclick="togglePlanInput('tomorrow')" title="添加任务">+</button>
-      </div>
-      <div class="plan-input-row" id="planInputRow-tomorrow" style="display:none;">
-        <input type="text" id="planInput-tomorrow" placeholder="输入明日任务..." onkeydown="if(event.key==='Enter')addPlan('tomorrow')">
-        <button onclick="addPlan('tomorrow')">添加</button>
-      </div>
-      <ul class="plan-list" id="planList-tomorrow" data-which="tomorrow"></ul>
-      <p id="planEmpty-tomorrow" style="text-align:center;color:var(--text-muted);font-size:13px;padding:14px 0;">明日无安排</p>
-      <div class="plan-tip">✨ 明天来临，这里的内容会自动转入「今日计划」</div>
+    <div class="plan-input-row" id="planInputRow" style="display:none;">
+      <input type="text" id="planInput" placeholder="输入今日任务..." onkeydown="if(event.key==='Enter')addPlan()">
+      <button onclick="addPlan()">添加</button>
     </div>
+    <ul class="plan-list" id="planList" data-which="today"></ul>
+    <p id="planEmpty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:14px 0;">今日无任务，点击 + 添加</p>
+    <div class="plan-tip" id="planTip" style="display:none;">✨ 明天来临，这里的内容会自动转入「今日计划」</div>
   </section>
 
   <!-- ====== Function Cards ====== -->
@@ -2158,11 +2154,14 @@ function setPlans(which, arr){
   all[k][which]=arr;
   try{ localStorage.setItem('daily_plans', JSON.stringify(all)); }catch(e){}
 }
+let planWhich = 'today';
 function renderPlans(which){
-  const list=document.getElementById('planList-'+which);
-  const empty=document.getElementById('planEmpty-'+which);
+  which = which || planWhich;
+  const list=document.getElementById('planList');
+  const empty=document.getElementById('planEmpty');
   if(!list) return;
   const plans=getPlans(which);
+  if(empty) empty.textContent = which==='tomorrow' ? '明日无安排' : '今日无任务，点击 + 添加';
   if(plans.length===0){ list.innerHTML=''; if(empty) empty.style.display='block'; return; }
   if(empty) empty.style.display='none';
   list.innerHTML=plans.map((p,i)=>`
@@ -2173,41 +2172,55 @@ function renderPlans(which){
     </li>`).join('');
   list.querySelectorAll('.plan-text').forEach(planAutoGrow);
 }
+function switchPlanTab(w){
+  planWhich = w;
+  document.querySelectorAll('.plan-tab').forEach(t => t.classList.toggle('active', t.dataset.w === w));
+  const inp = document.getElementById('planInput');
+  if (inp) inp.placeholder = w==='tomorrow' ? '输入明日任务…' : '输入今日任务…';
+  const tip = document.getElementById('planTip');
+  if (tip) tip.style.display = w==='tomorrow' ? 'block' : 'none';
+  const row = document.getElementById('planInputRow');
+  if (row) row.style.display = 'none';
+  renderPlans(w);
+}
 
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function planAutoGrow(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
-function togglePlanInput(which){
-  const row=document.getElementById('planInputRow-'+which);
+function togglePlanInput(){
+  const row=document.getElementById('planInputRow');
   row.style.display = row.style.display==='none'?'flex':'none';
-  if(row.style.display==='flex') document.getElementById('planInput-'+which).focus();
+  if(row.style.display==='flex') document.getElementById('planInput').focus();
 }
-function addPlan(which){
-  const input=document.getElementById('planInput-'+which);
+function addPlan(){
+  const input=document.getElementById('planInput');
   const text=input.value.trim();
   if(!text) return;
-  const plans=getPlans(which);
+  const plans=getPlans(planWhich);
   plans.push({text,done:false});
-  setPlans(which,plans);
+  setPlans(planWhich,plans);
   input.value='';
-  renderPlans(which);
+  renderPlans(planWhich);
   showToast('已添加');
 }
 function togglePlan(which,i){
+  which = which || planWhich;
   const plans=getPlans(which);
   plans[i].done=!plans[i].done;
   setPlans(which,plans);
   renderPlans(which);
 }
 function updatePlanText(which,i,text){
+  which = which || planWhich;
   const plans=getPlans(which);
   if(!plans[i]) return;
   plans[i].text=text;
   setPlans(which,plans);
 }
 function deletePlan(which,i){
+  which = which || planWhich;
   const plans=getPlans(which);
   plans.splice(i,1);
   setPlans(which,plans);
@@ -2826,7 +2839,8 @@ function foodNewsHtml(it){
 const ARCHIVE_KEY = 'archive_data_v1';
 const ARCHIVE_PWD_KEY = 'archive_pwd_v1';
 const ARCHIVE_TABS_KEY = 'archive_tabs_v1';
-let ARCHIVE_TABS = ['本科','研究生','职场','凭证'];
+const ARCHIVE_UNCAT = '未分类';
+let ARCHIVE_TABS = ['本科','研究生','职场','凭证','未分类'];
 let archiveData = {};
 let archTab = '本科';
 let archFilesData = [];
@@ -2837,6 +2851,7 @@ function loadArchive() {
     const t = JSON.parse(localStorage.getItem(ARCHIVE_TABS_KEY));
     if (Array.isArray(t) && t.length) ARCHIVE_TABS = t;
   } catch(e){}
+  if (!ARCHIVE_TABS.includes(ARCHIVE_UNCAT)) ARCHIVE_TABS.push(ARCHIVE_UNCAT);
   ARCHIVE_TABS.forEach(t => { if (!archiveData[t]) archiveData[t] = []; });
   try {
     const a = JSON.parse(localStorage.getItem(ARCHIVE_KEY));
@@ -2880,26 +2895,32 @@ function renderArchive() {
 }
 function renderArchiveTabs() {
   const tabsEl = document.getElementById('archiveTabs');
-  tabsEl.innerHTML = ARCHIVE_TABS.map(t =>
-    `<div class="archive-tab ${t===archTab?'active':''}" onclick="switchArchTab('${t}')">
-       <span class="tab-name" ondblclick="event.stopPropagation();renameArchiveTab('${t}')">${escapeHtml(t)}</span>
-       <span class="tab-x" onclick="event.stopPropagation();delArchiveTab('${t}')" title="删除分类">×</span>
-     </div>`
-  ).join('') + `<div class="archive-tab add-tab" onclick="showAddTab()">＋</div>`;
+  tabsEl.innerHTML = ARCHIVE_TABS.map(t => {
+    const isUncat = t === ARCHIVE_UNCAT;
+    const nameAttrs = isUncat ? '' : `ondblclick="event.stopPropagation();renameArchiveTab('${t}')"`;
+    const xHtml = isUncat ? '' : `<span class="tab-x" onclick="event.stopPropagation();delArchiveTab('${t}')" title="删除分类">×</span>`;
+    return `<div class="archive-tab ${t===archTab?'active':''}" onclick="switchArchTab('${t}')">
+       <span class="tab-name" ${nameAttrs}>${escapeHtml(t)}</span>
+       ${xHtml}
+     </div>`;
+  }).join('') + `<div class="archive-tab add-tab" onclick="showAddTab()">＋</div>`;
 }
 function delArchiveTab(t){
-  askConfirm('删除分类「'+t+'」及其下所有资料？', ()=>{
+  if(t===ARCHIVE_UNCAT){ showToast('「未分类」不可删除'); return; }
+  const count=(archiveData[t]||[]).length;
+  askConfirm('删除分类「'+t+'」？其下 '+count+' 条资料将移入【'+ARCHIVE_UNCAT+'】', ()=>{
+    const items = archiveData[t] || [];
+    archiveData[ARCHIVE_UNCAT] = (archiveData[ARCHIVE_UNCAT]||[]).concat(items);
     const idx=ARCHIVE_TABS.indexOf(t);
-    if(idx<0) return;
-    ARCHIVE_TABS.splice(idx,1);
+    if(idx>=0) ARCHIVE_TABS.splice(idx,1);
     delete archiveData[t];
-    if(ARCHIVE_TABS.length===0){ ARCHIVE_TABS=['未命名']; archiveData['未命名']=[]; }
-    if(archTab===t) archTab=ARCHIVE_TABS[0];
+    if(archTab===t) archTab=ARCHIVE_UNCAT;
     saveArchive();
     renderArchive();
   });
 }
 function renameArchiveTab(t){
+  if(t===ARCHIVE_UNCAT){ showToast('「未分类」不可重命名'); return; }
   const tabs=document.getElementById('archiveTabs');
   const el=[...tabs.children].find(c=>c.querySelector('.tab-name') && c.querySelector('.tab-name').textContent===t);
   if(!el) return;
@@ -2907,6 +2928,7 @@ function renameArchiveTab(t){
   const inp=el.querySelector('input'); if(inp){ inp.focus(); inp.select(); }
 }
 function commitRename(oldName, newName){
+  if(oldName===ARCHIVE_UNCAT) return;
   newName=(newName||'').trim();
   const idx=ARCHIVE_TABS.indexOf(oldName);
   if(idx<0){ renderArchiveTabs(); return; }
@@ -4032,7 +4054,6 @@ function init() {
   initCalendar();
   migratePlans();
   renderPlans('today');
-  renderPlans('tomorrow');
   document.addEventListener('pointermove', planMove, { passive: false });
   document.addEventListener('pointerup', planUp);
   document.addEventListener('pointercancel', planUp);
