@@ -198,7 +198,10 @@
   .science-card p { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 
   /* ===== 卷宗 ===== */
-  .archive-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .archive-tab-bar { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px; }
+  .archive-tabs { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+  .archive-edit-tab-btn { flex-shrink: 0; border: 1px solid var(--border); background: #fff; color: var(--text-secondary); border-radius: 12px; padding: 8px 12px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .archive-edit-tab-btn.active { background: var(--amber); color: #fff; border-color: var(--amber); font-weight: 600; }
   .archive-tab { flex: 0 0 auto; min-width: 56px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; color: var(--text-secondary); background: #fff; cursor: pointer; white-space: nowrap; }
   .archive-tab.add-tab { padding: 8px 12px; }
   .archive-tab .tab-name { line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1457,7 +1460,10 @@
       <span class="view-title">卷宗<small>个人档案</small></span>
     </div>
 
-    <div class="archive-tabs" id="archiveTabs"></div>
+    <div class="archive-tab-bar">
+      <div class="archive-tabs" id="archiveTabs"></div>
+      <button class="archive-edit-tab-btn" id="archTabEditBtn" onclick="toggleArchTabEdit()">✎ 编辑标签</button>
+    </div>
     <div id="addTabRow">
       <input type="text" id="newTabInput" placeholder="新分类名称" onkeydown="if(event.key==='Enter')confirmAddTab()">
       <button onclick="confirmAddTab()">确定</button>
@@ -2846,6 +2852,7 @@ const ARCHIVE_UNCAT = '未分类';
 let ARCHIVE_TABS = ['本科','研究生','职场','凭证','未分类'];
 let archiveData = {};
 let archTab = '本科';
+let archTabEditMode = false;
 let archFilesData = [];
 let _archDetailId = null;
 
@@ -2900,13 +2907,22 @@ function renderArchiveTabs() {
   const tabsEl = document.getElementById('archiveTabs');
   tabsEl.innerHTML = ARCHIVE_TABS.map(t => {
     const isUncat = t === ARCHIVE_UNCAT;
-    const nameAttrs = isUncat ? '' : `ondblclick="event.stopPropagation();renameArchiveTab('${t}')"`;
-    const xHtml = isUncat ? '' : `<span class="tab-x" onclick="event.stopPropagation();delArchiveTab('${t}')" title="删除分类">×</span>`;
+    const nameAttrs = (!isUncat && archTabEditMode) ? `ondblclick="event.stopPropagation();renameArchiveTab('${t}')"` : '';
+    const xHtml = (!isUncat && archTabEditMode) ? `<span class="tab-x" onclick="event.stopPropagation();delArchiveTab('${t}')" title="删除分类">×</span>` : '';
     return `<div class="archive-tab ${t===archTab?'active':''}" onclick="switchArchTab('${t}')">
        <span class="tab-name" ${nameAttrs}>${escapeHtml(t)}</span>
        ${xHtml}
      </div>`;
   }).join('') + `<div class="archive-tab add-tab" onclick="showAddTab()">＋</div>`;
+}
+function toggleArchTabEdit() {
+  archTabEditMode = !archTabEditMode;
+  const btn = document.getElementById('archTabEditBtn');
+  if (btn) {
+    btn.classList.toggle('active', archTabEditMode);
+    btn.textContent = archTabEditMode ? '✓ 完成' : '✎ 编辑标签';
+  }
+  renderArchiveTabs();
 }
 function delArchiveTab(t){
   if(t===ARCHIVE_UNCAT){ showToast('「未分类」不可删除'); return; }
