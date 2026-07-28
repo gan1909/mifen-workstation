@@ -198,9 +198,11 @@
   .science-card p { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 
   /* ===== 卷宗 ===== */
-  .archive-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
-  .archive-tab { flex: 1; min-width: 56px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px; padding: 8px 4px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; color: var(--text-secondary); background: #fff; cursor: pointer; }
-  .archive-tab .tab-name { flex: 1; line-height: 1.2; word-break: break-all; }
+  .archive-tabs { display: flex; flex-wrap: nowrap; gap: 6px; margin-bottom: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
+  .archive-tabs::-webkit-scrollbar { display: none; }
+  .archive-tab { flex: 0 0 auto; min-width: 56px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; color: var(--text-secondary); background: #fff; cursor: pointer; white-space: nowrap; }
+  .archive-tab.add-tab { padding: 8px 12px; }
+  .archive-tab .tab-name { line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .archive-tab .tab-x { margin-left: 2px; font-weight: 700; color: var(--text-secondary); font-size: 13px; padding: 0 1px; flex-shrink: 0; }
   .archive-tab .tab-x:hover { color: var(--red); }
   .archive-tab .tab-rename-input { width: 100%; font-size: 12px; border: none; border-radius: 6px; padding: 2px 3px; outline: none; text-align: center; background: #fff; }
@@ -1008,13 +1010,13 @@
   .media-type.book { background: var(--green-bg); color: var(--green); }
   .media-type.film { background: var(--blue-light); color: var(--blue); }
   .media-type.drama { background: var(--red-light); color: var(--red); }
-  .media-title { flex: 1; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .media-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .media-done-btn {
     border: 1px solid var(--green); background: var(--green-bg); color: var(--green);
     font-size: 12px; padding: 3px 10px; border-radius: 12px; cursor: pointer; flex-shrink: 0;
   }
   .media-stars { color: var(--amber); font-size: 13px; letter-spacing: 1px; flex-shrink: 0; }
-  .media-cmt { font-size: 12px; color: var(--text-secondary); margin-top: 3px; padding-left: 2px; }
+  .media-cmt { font-size: 12px; color: var(--text-secondary); margin-top: 3px; padding-left: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .media-date { font-size: 11px; color: var(--text-muted); }
   .rate-box { margin-top: 8px; background: var(--amber-bg); border-radius: var(--radius-sm); padding: 10px; }
   .rate-stars { font-size: 24px; letter-spacing: 6px; cursor: pointer; user-select: none; margin-bottom: 8px; text-align: center; }
