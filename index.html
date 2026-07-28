@@ -246,9 +246,10 @@
   .archive-del { border: none; background: transparent; color: var(--text-muted); font-size: 18px; cursor: pointer; flex-shrink: 0; align-self: flex-start; line-height: 1; }
   .archive-del:hover { color: var(--red); }
   .archive-add-btn { width: 100%; border: 1px dashed var(--amber); background: var(--amber-bg); color: var(--amber); padding: 10px; border-radius: 12px; font-size: 13px; cursor: pointer; margin-bottom: 12px; }
-  .archive-form { display: none; flex-direction: column; gap: 8px; background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; }
+  .archive-form { display: none; flex-direction: column; gap: 8px; background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; max-height: 75vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .archive-form.show { display: flex; }
   .archive-form input, .archive-form textarea { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; outline: none; background: #fff; color: var(--text); font-family: var(--font); box-sizing: border-box; }
+  .archive-form textarea { max-height: 220px; resize: vertical; }
   .archive-form input:focus, .archive-form textarea:focus { border-color: var(--amber); }
   .archive-form .row { display: flex; gap: 8px; }
   .archive-form .row button { flex: 1; padding: 9px; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
