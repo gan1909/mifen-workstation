@@ -319,7 +319,6 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    margin-top: 10px;
     padding: 5px 14px;
     border: 1px solid var(--amber-light);
     border-radius: 20px;
@@ -1242,20 +1241,37 @@
     pointer-events: none;
   }
   .toast.show { opacity: 1; }
+  .quote-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    position: relative;
+    z-index: 1;
+  }
   .quote-review-btn {
-    margin-top: 10px;
-    align-self: flex-end;
-    border: 1px solid var(--amber-light);
-    background: var(--amber-bg);
-    color: var(--amber);
-    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--green-light);
+    background: var(--green-bg);
+    color: var(--green);
+    font-size: 12px;
     font-weight: 600;
-    padding: 6px 14px;
+    padding: 5px 14px;
     border-radius: 20px;
     cursor: pointer;
     transition: all .15s;
   }
   .quote-review-btn:active { transform: scale(.96); }
+  .quote-review-btn .spin {
+    font-size: 13px;
+    line-height: 1;
+    display: inline-block;
+    transition: transform .5s ease;
+  }
+  .quote-review-btn:hover .spin { transform: rotate(360deg); }
 
   /* ===== 复盘视图 ===== */
   .review-tabs { display: flex; gap: 6px; margin: 4px 0 14px; }
@@ -1331,12 +1347,14 @@
     <div class="quote-block">
       <div class="quote-text" id="quoteText"></div>
       <div class="quote-meta" id="quoteMeta"></div>
-      <button class="quote-review-btn" onclick="openReview()">📊 复盘往期</button>
     </div>
-    <button class="quote-audio-btn" id="audioBtn" onclick="speakQuote()">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 8.5v-2a6.5 6.5 0 010 13v-2A4.5 4.5 0 0016.5 12z"/></svg>
-      听发音
-    </button>
+    <div class="quote-actions-row">
+      <button class="quote-audio-btn" id="audioBtn" onclick="speakQuote()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 8.5v-2a6.5 6.5 0 010 13v-2A4.5 4.5 0 0016.5 12z"/></svg>
+        听发音
+      </button>
+      <button class="quote-review-btn" onclick="openReview()"><span class="spin">🌀</span>复盘往期</button>
+    </div>
   </section>
 
   <!-- ====== Calendar ====== -->
