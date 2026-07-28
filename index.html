@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>木叶村村民工作站</title>
 <style>
   :root {
@@ -609,6 +612,7 @@
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
     transition: all 0.2s;
+    touch-action: none;
   }
   .plan-item:hover { border-color: var(--border); }
   .plan-item.editing { border-color: var(--amber-light); background: var(--amber-bg); }
@@ -1292,11 +1296,11 @@
     <div class="plan-tabs">
       <div class="plan-tab active" data-w="today" onclick="switchPlanTab('today')">📅 今日计划</div>
       <div class="plan-tab" data-w="tomorrow" onclick="switchPlanTab('tomorrow')">🌙 明日计划</div>
-      <button class="plan-add-btn" onclick="togglePlanInput()" title="添加任务">+</button>
+      <button type="button" class="plan-add-btn" onclick="togglePlanInput()" title="添加任务">+</button>
     </div>
     <div class="plan-input-row" id="planInputRow" style="display:none;">
       <input type="text" id="planInput" placeholder="输入今日任务..." onkeydown="if(event.key==='Enter')addPlan()">
-      <button onclick="addPlan()">添加</button>
+      <button type="button" onclick="addPlan()">添加</button>
     </div>
     <ul class="plan-list" id="planList" data-which="today"></ul>
     <p id="planEmpty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:14px 0;">今日无任务，点击 + 添加</p>
