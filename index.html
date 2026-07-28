@@ -119,6 +119,21 @@
   .study-cat.must::before { background: var(--red); }
   .study-cat.want { color: var(--blue); }
   .study-cat.want::before { background: var(--blue); }
+  .study-cat.mastered { color: var(--green); }
+  .study-cat.mastered::before { background: var(--green); }
+  .study-mastered-card { cursor: pointer; transition: transform .15s, box-shadow .15s; }
+  .study-mastered-card:active { transform: scale(0.99); }
+  .mastered-count {
+    font-size: 13px; font-weight: 700; color: #fff; background: var(--green);
+    border-radius: 12px; padding: 2px 10px; flex-shrink: 0;
+  }
+  .mastered-card-hint { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .mastered-btn {
+    margin-top: 12px; width: 100%;
+    border: 1px solid var(--green); background: var(--green); color: #fff;
+    font-size: 14px; font-weight: 600; padding: 10px; border-radius: 10px; cursor: pointer;
+  }
+  .mastered-btn:active { transform: scale(0.98); opacity: .92; }
   .study-list { display: flex; flex-direction: column; gap: 10px; }
   .study-item { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: #fff; }
   .study-item-head {
@@ -1606,7 +1621,28 @@
       <div class="study-list" id="studyWantList"></div>
     </section>
 
+    <section class="card study-section study-mastered-card" onclick="navigate('mastered')">
+      <div class="study-head">
+        <span class="study-cat mastered">已掌握</span>
+        <span class="mastered-count" id="masteredCount">0</span>
+      </div>
+      <div class="mastered-card-hint">点击查看已掌握的目标 ›</div>
+    </section>
+
     <p class="empty-hint" style="padding:4px 0 16px;">「必须学会」的目标可「今日打卡」，将在首页日历留下苦无印记 🗡️</p>
+  </div>
+  <!-- ===== 已掌握 view ===== -->
+  <div id="view-mastered" class="view">
+    <div class="view-header">
+      <button class="view-back" onclick="goHome()">‹ 返回</button>
+      <span class="view-title">已掌握<small>忍術成就</small></span>
+    </div>
+
+    <section class="card study-section">
+      <div class="study-list" id="masteredList"></div>
+    </section>
+
+    <p class="empty-hint" style="padding:4px 0 16px;">从「必须学会」展开某项，点底部「🎉 学会了！」即可收入此处 🏆</p>
   </div>
   <!-- ===== 料理 view ===== -->
   <div id="view-cook" class="view">
@@ -2552,6 +2588,7 @@ function navigate(area) {
     target.classList.add('active');
     window.scrollTo(0, 0);
     if (area === 'ninjutsu') renderStudy();
+    if (area === 'mastered') renderMastered();
     if (area === 'cook') renderCook();
     if (area === 'archive') renderArchive();
     if (area === 'taijutsu') renderTj();
@@ -2879,13 +2916,13 @@ function handleScroll() {
 //  PHASE 2 — 忍術 / 学习管理
 // ============================================================
 const STUDY_KEY = 'study_data_v1';
-let studyData = { must: [], want: [] };
+let studyData = { must: [], want: [], mastered: [] };
 function suid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
 function loadStudy() {
   try {
     const s = JSON.parse(localStorage.getItem(STUDY_KEY));
-    if (s && Array.isArray(s.must) && Array.isArray(s.want)) { studyData = s; return; }
+    if (s && Array.isArray(s.must) && Array.isArray(s.want)) { studyData = s; if(!Array.isArray(studyData.mastered)) studyData.mastered=[]; return; }
   } catch(e) {}
   studyData = {
     must: [{
@@ -2899,7 +2936,8 @@ function loadStudy() {
       id: suid(), title: 'Python 数据分析', expanded: false,
       resources: '· 廖雪峰教程\n· Kaggle 入门赛',
       weekly: '', monthly: '', tasks: []
-    }]
+    }],
+    mastered: []
   };
   saveStudy();
 }
@@ -2908,12 +2946,32 @@ function saveStudy() { localStorage.setItem(STUDY_KEY, JSON.stringify(studyData)
 function renderStudy() {
   renderStudyList('must', 'studyMustList');
   renderStudyList('want', 'studyWantList');
+  const mc = document.getElementById('masteredCount');
+  if (mc) mc.textContent = (studyData.mastered || []).length;
 }
 function renderStudyList(cat, elId) {
   const el = document.getElementById(elId);
   const items = studyData[cat];
   if (!items.length) { el.innerHTML = '<p class="empty-hint">暂无目标，点击右上角添加</p>'; return; }
   el.innerHTML = items.map((it, idx) => studyItemHTML(cat, it, idx)).join('');
+}
+function renderMastered() {
+  renderStudyList('mastered', 'masteredList');
+}
+function markMastered(id) {
+  const it = findStudy('must', id);
+  if (!it) return;
+  askConfirm('确定将「' + it.title + '」标记为已掌握？它将从「必须学会」移至「已掌握」。', () => {
+    const item = studyData.must.find(x => x.id === id);
+    studyData.must = studyData.must.filter(x => x.id !== id);
+    const d = new Date();
+    item.masteredDate = dateKey(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    item.expanded = false;
+    studyData.mastered.unshift(item);
+    saveStudy();
+    renderStudy();
+    showToast('🎉 已收入「已掌握」！恭喜掌握新忍术');
+  }, '标记为已掌握');
 }
 function studyItemHTML(cat, it, idx) {
   const isMust = cat === 'must';
@@ -2950,6 +3008,7 @@ function studyItemHTML(cat, it, idx) {
             <button onclick="addStudyTask('${cat}','${it.id}')">添加</button>
           </div>
         </div>
+        ${isMust ? `<button class="mastered-btn" onclick="markMastered('${it.id}')">🎉 学会了！</button>` : ''}
       </div>
     </div>`;
 }
