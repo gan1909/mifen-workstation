@@ -246,26 +246,8 @@
   .archive-del { border: none; background: transparent; color: var(--text-muted); font-size: 18px; cursor: pointer; flex-shrink: 0; align-self: flex-start; line-height: 1; }
   .archive-del:hover { color: var(--red); }
   .archive-add-btn { width: 100%; border: 1px dashed var(--amber); background: var(--amber-bg); color: var(--amber); padding: 10px; border-radius: 12px; font-size: 13px; cursor: pointer; margin-bottom: 12px; }
-  .archive-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 40; }
-  .archive-mask.show { display: block; }
-  .archive-form { display: none; flex-direction: column; gap: 8px; background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; }
-  .archive-form.show {
-    display: flex;
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 0;
-    width: 100%;
-    max-width: 480px;
-    max-height: 85vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
-    z-index: 50;
-    animation: sheetUp .25s ease;
-  }
-  @keyframes sheetUp { from { transform: translate(-50%, 100%); } to { transform: translate(-50%, 0); } }
+  .archive-form { display: none; flex-direction: column; gap: 8px; background: var(--bg); padding: 12px; border-radius: 12px; margin-bottom: 12px; max-height: 75vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .archive-form.show { display: flex; }
   .archive-form input, .archive-form textarea { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; outline: none; background: #fff; color: var(--text); font-family: var(--font); box-sizing: border-box; }
   .archive-form textarea { max-height: 220px; resize: vertical; }
   .archive-form input:focus, .archive-form textarea:focus { border-color: var(--amber); }
@@ -1733,7 +1715,6 @@
     </div>
     <input type="text" class="archive-search" id="archiveSearch" placeholder="🔍 搜索所有时期的资料..." oninput="renderArchive()">
     <button class="archive-add-btn" onclick="toggleArchiveForm()">+ 添加记录</button>
-    <div class="archive-mask" id="archiveMask" onclick="toggleArchiveForm()"></div>
     <div class="archive-form" id="archiveForm">
       <input type="text" id="archTitle" placeholder="材料名称，如：计算机二级证书">
       <textarea id="archNote" placeholder="备注，如：成绩 / 编号 / 说明" rows="2"></textarea>
@@ -3638,13 +3619,10 @@ function confirmAddTab() {
 function toggleArchiveForm() {
   const f = document.getElementById('archiveForm');
   f.classList.toggle('show');
-  const on = f.classList.contains('show');
-  document.getElementById('archiveMask').classList.toggle('show', on);
-  if (on) f.scrollTop = 0;
+  if (f.classList.contains('show')) f.scrollTop = 0;
 }
 function closeArchiveForm() {
   document.getElementById('archiveForm').classList.remove('show');
-  document.getElementById('archiveMask').classList.remove('show');
 }
 function processArchFiles(files, done) {
   const out = [];
