@@ -1245,6 +1245,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     margin-top: 12px;
     position: relative;
@@ -2581,11 +2582,12 @@ function gatherReview(period){
     if(cats.length){ const cnt=cats.reduce((s,c)=>s+((ad[c]||[]).length),0); archLines.push(`共 ${cats.length} 个分类、${cnt} 条卷宗资料（卷宗不记录日期，未纳入时间轴）`); }
   }catch(e){}
   if(archLines.length) blocks.push({t:'卷宗', lines:archLines});
-  // 学习目标
+  // 学习目标（study_data_v1.must/want 为对象数组 [{id,title,...}]，兼容纯字符串数组）
   let studyLines=[];
   try{
     const sd = JSON.parse(localStorage.getItem('study_data_v1')||'null');
-    if(sd){ if(Array.isArray(sd.must)&&sd.must.length) studyLines.push('必修目标：'+sd.must.join('、')); if(Array.isArray(sd.want)&&sd.want.length) studyLines.push('想学目标：'+sd.want.join('、')); }
+    const names = arr => Array.isArray(arr) ? arr.map(x => typeof x==='string' ? x : (x && x.title) || '').filter(Boolean) : [];
+    if(sd){ if(Array.isArray(sd.must)&&sd.must.length) studyLines.push('必修目标：'+names(sd.must).join('、')); if(Array.isArray(sd.want)&&sd.want.length) studyLines.push('想学目标：'+names(sd.want).join('、')); }
   }catch(e){}
   if(studyLines.length) blocks.push({t:'学习目标', lines:studyLines});
   // 日历节点
