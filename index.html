@@ -199,7 +199,11 @@
 
   /* ===== 卷宗 ===== */
   .archive-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
-  .archive-tab { flex: 1; min-width: 56px; text-align: center; padding: 8px 4px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; color: var(--text-secondary); background: #fff; cursor: pointer; }
+  .archive-tab { flex: 1; min-width: 56px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px; padding: 8px 4px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; color: var(--text-secondary); background: #fff; cursor: pointer; }
+  .archive-tab .tab-name { flex: 1; line-height: 1.2; word-break: break-all; }
+  .archive-tab .tab-x { margin-left: 2px; font-weight: 700; color: var(--text-secondary); font-size: 13px; padding: 0 1px; flex-shrink: 0; }
+  .archive-tab .tab-x:hover { color: var(--red); }
+  .archive-tab .tab-rename-input { width: 100%; font-size: 12px; border: none; border-radius: 6px; padding: 2px 3px; outline: none; text-align: center; background: #fff; }
   .archive-tab.active { background: var(--amber); color: #fff; border-color: var(--amber); font-weight: 600; }
   .archive-search { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 14px; outline: none; background: var(--bg); color: var(--text); margin-bottom: 12px; box-sizing: border-box; }
   .archive-search:focus { border-color: var(--amber); }
@@ -538,6 +542,9 @@
     color: var(--text);
   }
   .modal-input:focus { outline: none; border-color: var(--amber); }
+  .date-select { display: flex; align-items: center; gap: 4px; }
+  .date-select select.modal-input { flex: 1; min-width: 0; padding: 9px 6px; text-align: center; }
+  .date-select span { font-size: 13px; color: var(--text-secondary); flex-shrink: 0; }
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
   .modal-btn {
     flex: 1;
@@ -578,6 +585,8 @@
   }
   .plan-add-btn:hover { background: var(--amber-bg); border-color: var(--amber); }
   .plan-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .plan-block + .plan-block { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border); }
+  .plan-tip { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.5; }
   .plan-item {
     display: flex;
     align-items: center;
@@ -590,6 +599,8 @@
   }
   .plan-item:hover { border-color: var(--border); }
   .plan-item.editing { border-color: var(--amber-light); background: var(--amber-bg); }
+  .plan-item.dragging { opacity: .55; transform: scale(.98); box-shadow: 0 6px 16px rgba(0,0,0,.16); z-index: 5; }
+  body.dragging-active { user-select: none; -webkit-user-select: none; }
   .plan-checkbox {
     width: 20px; height: 20px;
     border: 2px solid var(--border);
@@ -619,8 +630,15 @@
     background: transparent;
     outline: none;
     font-family: var(--font);
-    line-height: 1.4;
+    line-height: 1.45;
     min-width: 0;
+    width: 100%;
+    resize: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    padding: 0;
   }
   .plan-text.done {
     text-decoration: line-through;
@@ -1203,7 +1221,6 @@
     <div class="date-display" id="dateDisplay"></div>
     <div class="quote-block">
       <div class="quote-text" id="quoteText"></div>
-      <div class="quote-romaji" id="quoteRomaji"></div>
       <div class="quote-meta" id="quoteMeta"></div>
     </div>
     <button class="quote-audio-btn" id="audioBtn" onclick="speakQuote()">
@@ -1241,7 +1258,11 @@
         <button class="type-opt" data-type="bday" onclick="selectType('bday')">🎂 纪念日</button>
       </div>
       <label class="modal-label">日期</label>
-      <input type="date" id="eventDate" class="modal-input">
+      <div class="date-select">
+        <select id="evYear" class="modal-input"></select><span>年</span>
+        <select id="evMonth" class="modal-input" onchange="updateEventDays()"></select><span>月</span>
+        <select id="evDay" class="modal-input" onchange="updateEventDays()"></select><span>日</span>
+      </div>
       <label class="modal-label">内容</label>
       <input type="text" id="eventText" class="modal-input" placeholder="如：季度报告提交 / 妈妈生日" maxlength="40">
       <div class="modal-actions">
@@ -1253,16 +1274,31 @@
 
   <!-- ====== Daily Plan ====== -->
   <section class="card">
-    <div class="plan-header">
-      <span class="plan-title">今日计划</span>
-      <button class="plan-add-btn" onclick="togglePlanInput()" title="添加任务">+</button>
+    <div class="plan-block">
+      <div class="plan-header">
+        <span class="plan-title">📅 今日计划</span>
+        <button class="plan-add-btn" onclick="togglePlanInput('today')" title="添加任务">+</button>
+      </div>
+      <div class="plan-input-row" id="planInputRow-today" style="display:none;">
+        <input type="text" id="planInput-today" placeholder="输入今日任务..." onkeydown="if(event.key==='Enter')addPlan('today')">
+        <button onclick="addPlan('today')">添加</button>
+      </div>
+      <ul class="plan-list" id="planList-today" data-which="today"></ul>
+      <p id="planEmpty-today" style="text-align:center;color:var(--text-muted);font-size:13px;padding:14px 0;">今日无任务，点击 + 添加</p>
     </div>
-    <div class="plan-input-row" id="planInputRow" style="display:none;">
-      <input type="text" id="planInput" placeholder="输入今日任务..." onkeydown="if(event.key==='Enter')addPlan()">
-      <button onclick="addPlan()">添加</button>
+    <div class="plan-block">
+      <div class="plan-header">
+        <span class="plan-title">🌙 明日计划</span>
+        <button class="plan-add-btn" onclick="togglePlanInput('tomorrow')" title="添加任务">+</button>
+      </div>
+      <div class="plan-input-row" id="planInputRow-tomorrow" style="display:none;">
+        <input type="text" id="planInput-tomorrow" placeholder="输入明日任务..." onkeydown="if(event.key==='Enter')addPlan('tomorrow')">
+        <button onclick="addPlan('tomorrow')">添加</button>
+      </div>
+      <ul class="plan-list" id="planList-tomorrow" data-which="tomorrow"></ul>
+      <p id="planEmpty-tomorrow" style="text-align:center;color:var(--text-muted);font-size:13px;padding:14px 0;">明日无安排</p>
+      <div class="plan-tip">✨ 明天来临，这里的内容会自动转入「今日计划」</div>
     </div>
-    <ul class="plan-list" id="planList"></ul>
-    <p id="planEmpty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px 0;">今日无任务，点击 + 添加</p>
   </section>
 
   <!-- ====== Function Cards ====== -->
@@ -1432,7 +1468,7 @@
     <div class="archive-form" id="archiveForm">
       <input type="text" id="archTitle" placeholder="材料名称，如：计算机二级证书">
       <textarea id="archNote" placeholder="备注，如：成绩 / 编号 / 说明" rows="2"></textarea>
-      <input type="file" id="archImg" accept="image/*" multiple onchange="previewArchFiles(this)">
+      <input type="file" id="archImg" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.*" multiple onchange="previewArchFiles(this)">
       <div id="archFileHint" class="empty-hint" style="font-size:12px;"></div>
       <div class="row">
         <button class="cancel" onclick="toggleArchiveForm()">取消</button>
@@ -1695,6 +1731,48 @@ const QUOTES = [
   { jp:"知識は力、情報は武器だ", cn:"知识就是力量，情报就是武器", romaji:"Chishiki wa chikara, jōhō wa buki da", char:"奈良鹿丸", village:"木叶隐村" },
   { jp:"他人の基準で自分の人生を測るな", cn:"不要用别人的标准来衡量自己的人生", romaji:"Tanin no kijun de jibun no jinsei o hakaru na", char:"纲手", village:"木叶隐村" },
   { jp:"今日の不愉快はここまで、明日はまた輝く", cn:"今天的不开心就到此为止，明天依然光芒万丈", romaji:"Kyō no fuyukai wa koko made, asu wa mata kagayaku", char:"漩涡鸣人", village:"木叶隐村" },
+
+  // —— 文学 ——
+  { cn:"其实地上本没有路，走的人多了，也便成了路。", cat:"文学", char:"鲁迅" },
+  { cn:"世界上最宽阔的是海洋，比海洋更宽阔的是天空，比天空更宽阔的是人的胸怀。", cat:"文学", char:"雨果" },
+  { cn:"我们都是阴沟里的虫子，但总还是得有人仰望星空。", cat:"文学", char:"王尔德" },
+  { cn:"我们曾如此渴望命运的波澜，到最后才发现，人生最曼妙的风景，竟是内心的淡定与从容。", cat:"文学", char:"杨绛" },
+  { cn:"人生就是永不休止的奋斗。", cat:"文学", char:"路遥" },
+  { cn:"生活总是让我们遍体鳞伤，但到后来，那些受伤的地方一定会变成我们最强壮的地方。", cat:"文学", char:"海明威" },
+  { cn:"生命中曾经有过的所有灿烂，终究都需要用寂寞来偿还。", cat:"文学", char:"马尔克斯" },
+  { cn:"于千万人之中遇见你所遇见的人，于千万年之中，没有早一步，也没有晚一步。", cat:"文学", char:"张爱玲" },
+  { cn:"当你穿过了暴风雨，你就不再是原来那个人。", cat:"文学", char:"村上春树" },
+  { cn:"人是为活着本身而活着，而不是为了活着之外的任何事物而活着。", cat:"文学", char:"余华" },
+
+  // —— 影剧 ——
+  { cn:"希望是好事，也许是最好的事，好事永远不会消逝。", cat:"影剧", char:"《肖申克的救赎》" },
+  { cn:"花一秒钟就看透事物本质的人，和花一辈子都看不清的人，注定是截然不同的命运。", cat:"影剧", char:"《教父》" },
+  { cn:"人得自个儿成全自个儿。", cat:"影剧", char:"《霸王别姬》" },
+  { cn:"既然我活了下来，就不会白白活着。", cat:"影剧", char:"《琅琊榜》" },
+  { cn:"大人只是过了期的小孩。", cat:"影剧", char:"《请回答1988》" },
+  { cn:"成长就是逼着你一个人，踉踉跄跄地受伤，跌跌撞撞地坚强。", cat:"影剧", char:"《武林外传》" },
+  { cn:"生活就像一盒巧克力，你永远不知道下一颗是什么味道。", cat:"影剧", char:"《阿甘正传》" },
+  { cn:"真正有气质的淑女，从不告诉别人自己读过多少书。", cat:"影剧", char:"《怦然心动》" },
+
+  // —— 哲学 ——
+  { cn:"认识你自己。", cat:"哲学", char:"苏格拉底" },
+  { cn:"那些杀不死我的，终将使我更强大。", cat:"哲学", char:"尼采" },
+  { cn:"我们重复做的事，决定了我们是怎样的人。", cat:"哲学", char:"亚里士多德" },
+  { cn:"自律即自由。", cat:"哲学", char:"康德" },
+  { cn:"在隆冬，我终于知道，我身上有一个不可战胜的夏天。", cat:"哲学", char:"加缪" },
+  { cn:"吾生也有涯，而知也无涯。", cat:"哲学", char:"庄子" },
+  { cn:"千里之行，始于足下。", cat:"哲学", char:"老子" },
+  { cn:"三人行，必有我师焉。", cat:"哲学", char:"孔子" },
+  { cn:"平庸的人关心怎样耗费时间，有才能的人竭力利用时间。", cat:"哲学", char:"叔本华" },
+  { cn:"知行合一。", cat:"哲学", char:"王阳明" },
+
+  // —— 经典 ——
+  { cn:"学而不思则罔，思而不学则殆。", cat:"经典", char:"《论语》" },
+  { cn:"上善若水，水善利万物而不争。", cat:"经典", char:"《道德经》" },
+  { cn:"真正重要的东西，用眼睛是看不见的。", cat:"经典", char:"《小王子》" },
+  { cn:"为你，千千万万遍。", cat:"经典", char:"《追风筝的人》" },
+  { cn:"活着本身，就很了不起。", cat:"经典", char:"《活着》" },
+  { cn:"世界上只有一种真正的英雄主义，就是认清了生活的真相后还依然热爱它。", cat:"经典", char:"罗曼·罗兰" },
 ];
 
 const DDL_DEFAULTS = {
@@ -1744,12 +1822,12 @@ function loadQuote() {
   const now = new Date();
   const idx = (now.getFullYear() * 365 + now.getMonth() * 31 + now.getDate()) % QUOTES.length;
   const q = QUOTES[idx];
-  window._currentQuoteJp = q.jp;
+  const cat = q.cat || '火影';
+  window._currentQuoteJp = q.jp || '';
   document.getElementById('quoteText').textContent = '「' + q.cn + '」';
-  document.getElementById('quoteRomaji').textContent = q.romaji;
-  document.getElementById('quoteMeta').innerHTML = `
-    <span>${q.char}</span><span class="dot"></span><span class="village">${q.village}</span>
-  `;
+  const catLabel = { '火影':'🔥 火影忍者', '文学':'📖 文学', '影剧':'🎬 影剧', '哲学':'🜂 哲学', '经典':'⭐ 经典' }[cat] || cat;
+  document.getElementById('quoteMeta').innerHTML =
+    `<span>${catLabel}</span>` + (q.char ? `<span class="dot"></span><span class="village">${q.char}</span>` : '');
 }
 
 let isSpeaking = false;
@@ -1959,11 +2037,27 @@ function showDayDetail(key, day) {
 // ---- Add / Delete calendar events ----
 let currentType = 'ddl';
 
+function fillEventDate(y, m, d){
+  const ySel=document.getElementById('evYear'), mSel=document.getElementById('evMonth'), dSel=document.getElementById('evDay');
+  const cy=new Date().getFullYear();
+  ySel.innerHTML=[cy-1,cy,cy+1,cy+2].map(yy=>`<option value="${yy}"${yy===y?' selected':''}>${yy}</option>`).join('');
+  mSel.innerHTML=Array.from({length:12},(_,i)=>i+1).map(mm=>`<option value="${String(mm).padStart(2,'0')}">${mm}月</option>`).join('');
+  const dim=new Date(y,m,0).getDate();
+  dSel.innerHTML=Array.from({length:dim},(_,i)=>i+1).map(dd=>`<option value="${String(dd).padStart(2,'0')}">${dd}日</option>`).join('');
+  ySel.value=y; mSel.value=String(m).padStart(2,'0'); dSel.value=String(d).padStart(2,'0');
+}
+function updateEventDays(){
+  const y=+document.getElementById('evYear').value, m=+document.getElementById('evMonth').value;
+  const dSel=document.getElementById('evDay'); const cur=+dSel.value||1;
+  const dim=new Date(y,m,0).getDate();
+  dSel.innerHTML=Array.from({length:dim},(_,i)=>i+1).map(dd=>`<option value="${String(dd).padStart(2,'0')}">${dd}日</option>`).join('');
+  dSel.value=String(Math.min(cur,dim)).padStart(2,'0');
+}
 function openEventModal() {
   currentType = 'ddl';
   document.querySelectorAll('.type-opt').forEach(b => b.classList.toggle('active', b.dataset.type === 'ddl'));
   const t = new Date();
-  document.getElementById('eventDate').value = dateKey(t.getFullYear(), t.getMonth() + 1, t.getDate());
+  fillEventDate(t.getFullYear(), t.getMonth() + 1, t.getDate());
   document.getElementById('eventText').value = '';
   document.getElementById('eventModal').classList.add('show');
   setTimeout(() => document.getElementById('eventText').focus(), 120);
@@ -1979,7 +2073,7 @@ function selectType(type) {
 }
 
 function saveEvent() {
-  const date = document.getElementById('eventDate').value;
+  const date = document.getElementById('evYear').value + '-' + document.getElementById('evMonth').value + '-' + document.getElementById('evDay').value;
   const text = document.getElementById('eventText').value.trim();
   if (!date) { toast('请选择日期'); return; }
   if (!text) { toast('请输入内容'); return; }
@@ -2028,86 +2122,132 @@ function toast(msg) {
 // ============================================================
 //  DAILY PLAN
 // ============================================================
-function getPlans() {
-  const today = dateKey(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
-  let all = {};
-  try { all = JSON.parse(localStorage.getItem('daily_plans') || '{}'); } catch(e) {}
-  return all[today] || [];
-}
-
-function savePlans(plans) {
-  const today = dateKey(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
-  let all = {};
-  try { all = JSON.parse(localStorage.getItem('daily_plans') || '{}'); } catch(e) {}
-  all[today] = plans;
-  localStorage.setItem('daily_plans', JSON.stringify(all));
-}
-
-function renderPlans() {
-  const plans = getPlans();
-  const list = document.getElementById('planList');
-  const empty = document.getElementById('planEmpty');
-
-  if (plans.length === 0) {
-    list.innerHTML = '';
-    empty.style.display = 'block';
-    return;
+function todayKey(){ const t=new Date(); return dateKey(t.getFullYear(),t.getMonth()+1,t.getDate()); }
+function tomorrowKey(){ const t=new Date(); t.setDate(t.getDate()+1); return dateKey(t.getFullYear(),t.getMonth()+1,t.getDate()); }
+function migratePlans(){
+  let all={};
+  try{ all=JSON.parse(localStorage.getItem('daily_plans')||'{}'); }catch(e){}
+  const tk=todayKey();
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const yk=dateKey(y.getFullYear(),y.getMonth()+1,y.getDate());
+  if(all[tk] && Array.isArray(all[tk])) all[tk]={today:all[tk],tomorrow:[]};
+  if(all[yk]){
+    const yd=all[yk];
+    const yTom = Array.isArray(yd) ? [] : (yd.tomorrow||[]);
+    if(yTom.length){
+      const cur=all[tk]||{today:[],tomorrow:[]};
+      cur.today=cur.today.concat(yTom);
+      all[tk]=cur;
+    }
+    delete all[yk];
+    try{ localStorage.setItem('daily_plans', JSON.stringify(all)); }catch(e){}
   }
-  empty.style.display = 'none';
-
-  list.innerHTML = plans.map((p, i) => `
-    <li class="plan-item">
-      <div class="plan-checkbox ${p.done ? 'checked' : ''}" onclick="togglePlan(${i})"></div>
-      <input class="plan-text ${p.done ? 'done' : ''}" value="${escapeHtml(p.text)}"
-        oninput="updatePlanText(${i}, this.value)"
-        onfocus="this.parentElement.classList.add('editing')"
-        onblur="this.parentElement.classList.remove('editing')">
-      <button class="plan-delete" onclick="deletePlan(${i})">×</button>
-    </li>
-  `).join('');
+}
+function getPlans(which){
+  let all={};
+  try{ all=JSON.parse(localStorage.getItem('daily_plans')||'{}'); }catch(e){}
+  const k = which==='tomorrow'?tomorrowKey():todayKey();
+  const node = all[k]||{today:[],tomorrow:[]};
+  return node[which]||[];
+}
+function setPlans(which, arr){
+  let all={};
+  try{ all=JSON.parse(localStorage.getItem('daily_plans')||'{}'); }catch(e){}
+  const k = which==='tomorrow'?tomorrowKey():todayKey();
+  if(!all[k]) all[k]={today:[],tomorrow:[]};
+  all[k][which]=arr;
+  try{ localStorage.setItem('daily_plans', JSON.stringify(all)); }catch(e){}
+}
+function renderPlans(which){
+  const list=document.getElementById('planList-'+which);
+  const empty=document.getElementById('planEmpty-'+which);
+  if(!list) return;
+  const plans=getPlans(which);
+  if(plans.length===0){ list.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+  list.innerHTML=plans.map((p,i)=>`
+    <li class="plan-item" data-i="${i}" data-which="${which}" onpointerdown="planDown(event,this,'${which}')">
+      <div class="plan-checkbox ${p.done?'checked':''}" onclick="togglePlan('${which}',${i})"></div>
+      <textarea class="plan-text ${p.done?'done':''}" rows="1" oninput="planAutoGrow(this);updatePlanText('${which}',${i},this.value)" onfocus="this.parentElement.classList.add('editing')" onblur="this.parentElement.classList.remove('editing')">${escapeHtml(p.text)}</textarea>
+      <button class="plan-delete" onclick="deletePlan('${which}',${i})">×</button>
+    </li>`).join('');
+  list.querySelectorAll('.plan-text').forEach(planAutoGrow);
 }
 
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function togglePlanInput() {
-  const row = document.getElementById('planInputRow');
-  row.style.display = row.style.display === 'none' ? 'flex' : 'none';
-  if (row.style.display === 'flex') document.getElementById('planInput').focus();
+function planAutoGrow(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+function togglePlanInput(which){
+  const row=document.getElementById('planInputRow-'+which);
+  row.style.display = row.style.display==='none'?'flex':'none';
+  if(row.style.display==='flex') document.getElementById('planInput-'+which).focus();
 }
-
-function addPlan() {
-  const input = document.getElementById('planInput');
-  const text = input.value.trim();
-  if (!text) return;
-  const plans = getPlans();
-  plans.push({ text, done: false });
-  savePlans(plans);
-  input.value = '';
-  renderPlans();
-  showToast('任务已添加');
+function addPlan(which){
+  const input=document.getElementById('planInput-'+which);
+  const text=input.value.trim();
+  if(!text) return;
+  const plans=getPlans(which);
+  plans.push({text,done:false});
+  setPlans(which,plans);
+  input.value='';
+  renderPlans(which);
+  showToast('已添加');
 }
-
-function togglePlan(i) {
-  const plans = getPlans();
-  plans[i].done = !plans[i].done;
-  savePlans(plans);
-  renderPlans();
+function togglePlan(which,i){
+  const plans=getPlans(which);
+  plans[i].done=!plans[i].done;
+  setPlans(which,plans);
+  renderPlans(which);
 }
-
-function updatePlanText(i, text) {
-  const plans = getPlans();
-  plans[i].text = text;
-  savePlans(plans);
+function updatePlanText(which,i,text){
+  const plans=getPlans(which);
+  if(!plans[i]) return;
+  plans[i].text=text;
+  setPlans(which,plans);
 }
-
-function deletePlan(i) {
-  const plans = getPlans();
-  plans.splice(i, 1);
-  savePlans(plans);
-  renderPlans();
-  showToast('任务已删除');
+function deletePlan(which,i){
+  const plans=getPlans(which);
+  plans.splice(i,1);
+  setPlans(which,plans);
+  renderPlans(which);
+  showToast('已删除');
+}
+// ---- 长按拖动排序 ----
+let _drag=null;
+function planDown(e, li, which){
+  if(e.pointerType==='mouse' && e.button!==0) return;
+  li._timer=setTimeout(()=>{
+    _drag={which, li, list:li.parentElement};
+    li.classList.add('dragging');
+    document.body.classList.add('dragging-active');
+  }, 380);
+}
+function planMove(e){
+  if(!_drag) return;
+  if(e.cancelable) e.preventDefault();
+  const y = e.clientY!=null ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  const items=[..._drag.list.children].filter(c=>c!==_drag.li && c.classList.contains('plan-item'));
+  let placed=false;
+  for(const it of items){
+    const r=it.getBoundingClientRect();
+    if(y < r.top + r.height/2){ _drag.list.insertBefore(_drag.li, it); placed=true; break; }
+  }
+  if(!placed) _drag.list.appendChild(_drag.li);
+}
+function planUp(){
+  if(!_drag) return;
+  const {which, list, li}=_drag;
+  clearTimeout(li._timer);
+  li.classList.remove('dragging');
+  document.body.classList.remove('dragging-active');
+  const order=[...list.children].filter(c=>c.classList.contains('plan-item')).map(c=>parseInt(c.dataset.i,10));
+  const plans=getPlans(which);
+  const next=order.map(idx=>plans[idx]).filter(Boolean);
+  setPlans(which,next);
+  _drag=null;
+  renderPlans(which);
 }
 
 // ============================================================
@@ -2135,7 +2275,9 @@ function goHome() {
   document.getElementById('view-home').classList.add('active');
   renderCalendar();
   loadNews(false);
-  window.scrollTo(0, 0);
+  // 返回后定位到首页「功能区」区块，而非最顶部
+  const fc = document.querySelector('.func-grid');
+  if (fc) window.scrollTo({ top: Math.max(0, fc.offsetTop - 6), behavior: 'auto' });
 }
 
 function getAreaName(key) {
@@ -2739,8 +2881,44 @@ function renderArchive() {
 function renderArchiveTabs() {
   const tabsEl = document.getElementById('archiveTabs');
   tabsEl.innerHTML = ARCHIVE_TABS.map(t =>
-    `<div class="archive-tab ${t===archTab?'active':''}" onclick="switchArchTab('${t}')">${escapeHtml(t)}</div>`
+    `<div class="archive-tab ${t===archTab?'active':''}" onclick="switchArchTab('${t}')">
+       <span class="tab-name" ondblclick="event.stopPropagation();renameArchiveTab('${t}')">${escapeHtml(t)}</span>
+       <span class="tab-x" onclick="event.stopPropagation();delArchiveTab('${t}')" title="删除分类">×</span>
+     </div>`
   ).join('') + `<div class="archive-tab add-tab" onclick="showAddTab()">＋</div>`;
+}
+function delArchiveTab(t){
+  askConfirm('删除分类「'+t+'」及其下所有资料？', ()=>{
+    const idx=ARCHIVE_TABS.indexOf(t);
+    if(idx<0) return;
+    ARCHIVE_TABS.splice(idx,1);
+    delete archiveData[t];
+    if(ARCHIVE_TABS.length===0){ ARCHIVE_TABS=['未命名']; archiveData['未命名']=[]; }
+    if(archTab===t) archTab=ARCHIVE_TABS[0];
+    saveArchive();
+    renderArchive();
+  });
+}
+function renameArchiveTab(t){
+  const tabs=document.getElementById('archiveTabs');
+  const el=[...tabs.children].find(c=>c.querySelector('.tab-name') && c.querySelector('.tab-name').textContent===t);
+  if(!el) return;
+  el.innerHTML=`<input class="tab-rename-input" value="${escapeHtml(t)}" onkeydown="if(event.key==='Enter')commitRename('${t}',this.value)" onblur="commitRename('${t}',this.value)">`;
+  const inp=el.querySelector('input'); if(inp){ inp.focus(); inp.select(); }
+}
+function commitRename(oldName, newName){
+  newName=(newName||'').trim();
+  const idx=ARCHIVE_TABS.indexOf(oldName);
+  if(idx<0){ renderArchiveTabs(); return; }
+  if(newName && newName!==oldName){
+    if(ARCHIVE_TABS.includes(newName)){ showToast('分类名已存在'); renderArchiveTabs(); return; }
+    archiveData[newName]=archiveData[oldName]||[];
+    delete archiveData[oldName];
+    ARCHIVE_TABS[idx]=newName;
+    if(archTab===oldName) archTab=newName;
+    saveArchive();
+  }
+  renderArchiveTabs();
 }
 function switchArchTab(t) { archTab = t; document.getElementById('archiveSearch').value=''; renderArchive(); }
 function showAddTab() { document.getElementById('addTabRow').style.display = 'flex'; document.getElementById('newTabInput').focus(); }
@@ -2783,14 +2961,14 @@ function processArchFiles(files, done) {
       };
       reader.onerror = () => { out.push({ name: f.name, data: '', type: f.type }); finish(); };
       reader.readAsDataURL(f);
-    } else if (f.size <= 1000000) {
-      // 非图片文件 ≤1MB：完整存储，支持导出
+    } else if (f.size <= 5000000) {
+      // 非图片文件 ≤5MB：完整存储，支持导出
       const reader = new FileReader();
       reader.onload = e => { out.push({ name: f.name, data: e.target.result, type: f.type || 'application/octet-stream' }); finish(); };
       reader.onerror = () => { out.push({ name: f.name, data: '', type: f.type }); finish(); };
       reader.readAsDataURL(f);
     } else {
-      showToast(f.name + ' 超过1MB，仅记录文件名');
+      showToast(f.name + ' 超过5MB，仅记录文件名');
       out.push({ name: f.name, data: '', type: f.type });
       finish();
     }
@@ -3852,7 +4030,12 @@ function init() {
   loadDateHeader();
   loadQuote();
   initCalendar();
-  renderPlans();
+  migratePlans();
+  renderPlans('today');
+  renderPlans('tomorrow');
+  document.addEventListener('pointermove', planMove, { passive: false });
+  document.addEventListener('pointerup', planUp);
+  document.addEventListener('pointercancel', planUp);
   loadStudy();
   loadCook();
   loadArchive();
