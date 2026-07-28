@@ -134,6 +134,14 @@
     font-size: 14px; font-weight: 600; padding: 10px; border-radius: 10px; cursor: pointer;
   }
   .mastered-btn:active { transform: scale(0.98); opacity: .92; }
+  .retake-btn {
+    margin-top: 12px; width: 100%;
+    border: 1px solid var(--amber); background: var(--amber-bg); color: var(--amber);
+    font-size: 14px; font-weight: 600; padding: 10px; border-radius: 10px; cursor: pointer;
+  }
+  .retake-btn:active { transform: scale(0.98); opacity: .9; }
+  .mastered-date { font-size: 12px; color: var(--green); flex-shrink: 0; }
+  .study-score { min-height: 40px; }
   .study-list { display: flex; flex-direction: column; gap: 10px; }
   .study-item { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: #fff; }
   .study-item-head {
@@ -1634,7 +1642,7 @@
   <!-- ===== 已掌握 view ===== -->
   <div id="view-mastered" class="view">
     <div class="view-header">
-      <button class="view-back" onclick="goHome()">‹ 返回</button>
+      <button class="view-back" onclick="navigate('ninjutsu')">‹ 忍術</button>
       <span class="view-title">已掌握<small>忍術成就</small></span>
     </div>
 
@@ -2973,8 +2981,24 @@ function markMastered(id) {
     showToast('🎉 已收入「已掌握」！恭喜掌握新忍术');
   }, '标记为已掌握');
 }
+function retakeStudy(id) {
+  const it = findStudy('mastered', id);
+  if (!it) return;
+  askConfirm('确定将「' + it.title + '」移回「必须学会」重新修炼？', () => {
+    const item = studyData.mastered.find(x => x.id === id);
+    studyData.mastered = studyData.mastered.filter(x => x.id !== id);
+    delete item.masteredDate;
+    item.expanded = false;
+    studyData.must.unshift(item);
+    saveStudy();
+    renderStudy();
+    renderMastered();
+    showToast('🔄 已移回「必须学会」，继续修炼吧');
+  }, '移回重修');
+}
 function studyItemHTML(cat, it, idx) {
   const isMust = cat === 'must';
+  const isMastered = cat === 'mastered';
   const checked = isCheckedInToday(it.id);
   const tasks = (it.tasks || []).map(t => `
     <div class="study-task ${t.done?'done':''}">
@@ -2982,6 +3006,25 @@ function studyItemHTML(cat, it, idx) {
       <span>${escapeHtml(t.text)}</span>
       <button class="icon-btn del" onclick="deleteStudyTask('${cat}','${it.id}','${t.id}')" title="删除">×</button>
     </div>`).join('');
+  // 已掌握：无 ↑↓×，详情展示资源 / 感想 / 成绩，底部「重修」回到必须学会
+  if (isMastered) {
+    return `
+    <div class="study-item ${it.expanded?'expanded':''}">
+      <div class="study-item-head" onclick="toggleStudyExpand('${cat}','${it.id}')">
+        <div class="study-item-title">${escapeHtml(it.title)}</div>
+        ${it.masteredDate ? `<span class="mastered-date">🏆 ${it.masteredDate}</span>` : ''}
+      </div>
+      <div class="study-detail">
+        <div class="study-field-label">📚 资源 / 资料</div>
+        <textarea class="study-textarea" oninput="updateStudyField('${cat}','${it.id}','resources',this.value)" placeholder="课程、书、链接...">${escapeHtml(it.resources||'')}</textarea>
+        <div class="study-field-label">💭 感想</div>
+        <textarea class="study-textarea" oninput="updateStudyField('${cat}','${it.id}','reflection',this.value)" placeholder="学完后的心得、体会...">${escapeHtml(it.reflection||'')}</textarea>
+        <div class="study-field-label">🏅 成绩</div>
+        <textarea class="study-textarea study-score" oninput="updateStudyField('${cat}','${it.id}','score',this.value)" placeholder="记录成绩……（如：2026-07 95分）">${escapeHtml(it.score||'')}</textarea>
+        <button class="retake-btn" onclick="retakeStudy('${it.id}')">🔄 重修（移回必须学会）</button>
+      </div>
+    </div>`;
+  }
   return `
     <div class="study-item ${it.expanded?'expanded':''}">
       <div class="study-item-head" onclick="toggleStudyExpand('${cat}','${it.id}')">
