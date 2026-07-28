@@ -2133,31 +2133,54 @@ function toast(msg) {
 // ============================================================
 function todayKey(){ const t=new Date(); return dateKey(t.getFullYear(),t.getMonth()+1,t.getDate()); }
 function tomorrowKey(){ const t=new Date(); t.setDate(t.getDate()+1); return dateKey(t.getFullYear(),t.getMonth()+1,t.getDate()); }
+function normPlanItem(x){
+  if(x==null) return null;
+  if(typeof x==='string') return {text:x, done:false};
+  if(typeof x==='object'){
+    let text = x.text!=null ? x.text : (x.name!=null ? x.name : (x.task!=null ? x.task : (x.title!=null ? x.title : '')));
+    return {text:String(text), done:!!x.done};
+  }
+  return null;
+}
+function normPlanNode(n){
+  if(Array.isArray(n)) return {today:n.map(normPlanItem).filter(Boolean), tomorrow:[]};
+  if(n && typeof n==='object'){
+    return {
+      today: Array.isArray(n.today) ? n.today.map(normPlanItem).filter(Boolean) : [],
+      tomorrow: Array.isArray(n.tomorrow) ? n.tomorrow.map(normPlanItem).filter(Boolean) : []
+    };
+  }
+  return {today:[], tomorrow:[]};
+}
 function migratePlans(){
   let all={};
-  try{ all=JSON.parse(localStorage.getItem('daily_plans')||'{}'); }catch(e){}
+  try{ all=JSON.parse(localStorage.getItem('daily_plans')||'{}'); }catch(e){ all={}; }
+  if(!all || typeof all!=='object') all={};
+  const out={};
+  for(const k in all){ if(Object.prototype.hasOwnProperty.call(all,k)) out[k]=normPlanNode(all[k]); }
   const tk=todayKey();
   const y=new Date(); y.setDate(y.getDate()-1);
   const yk=dateKey(y.getFullYear(),y.getMonth()+1,y.getDate());
-  if(all[tk] && Array.isArray(all[tk])) all[tk]={today:all[tk],tomorrow:[]};
-  if(all[yk]){
-    const yd=all[yk];
-    const yTom = Array.isArray(yd) ? [] : (yd.tomorrow||[]);
+  if(out[yk]){
+    const yTom = out[yk].tomorrow||[];
     if(yTom.length){
-      const cur=all[tk]||{today:[],tomorrow:[]};
-      cur.today=cur.today.concat(yTom);
-      all[tk]=cur;
+      const cur = out[tk]||{today:[],tomorrow:[]};
+      cur.today = cur.today.concat(yTom);
+      out[tk]=cur;
     }
-    delete all[yk];
-    try{ localStorage.setItem('daily_plans', JSON.stringify(all)); }catch(e){}
+    delete out[yk];
   }
+  if(!out[tk]) out[tk]={today:[],tomorrow:[]};
+  try{ localStorage.setItem('daily_plans', JSON.stringify(out)); }catch(e){}
 }
 function getPlans(which){
   let all={};
   try{ all=JSON.parse(localStorage.getItem('daily_plans')||'{}'); }catch(e){}
   const k = which==='tomorrow'?tomorrowKey():todayKey();
-  const node = all[k]||{today:[],tomorrow:[]};
-  return node[which]||[];
+  const node = all[k];
+  if(!node || typeof node!=='object') return [];
+  const arr = node[which];
+  return Array.isArray(arr)?arr:[];
 }
 function setPlans(which, arr){
   let all={};
@@ -2180,7 +2203,7 @@ function renderPlans(which){
   list.innerHTML=plans.map((p,i)=>`
     <li class="plan-item" data-i="${i}" data-which="${which}" onpointerdown="planDown(event,this,'${which}')">
       <div class="plan-checkbox ${p.done?'checked':''}" onclick="togglePlan('${which}',${i})"></div>
-      <textarea class="plan-text ${p.done?'done':''}" rows="1" oninput="planAutoGrow(this);updatePlanText('${which}',${i},this.value)" onfocus="this.parentElement.classList.add('editing')" onblur="this.parentElement.classList.remove('editing')">${escapeHtml(p.text)}</textarea>
+      <textarea class="plan-text ${p.done?'done':''}" rows="1" oninput="planAutoGrow(this);updatePlanText('${which}',${i},this.value)" onfocus="this.parentElement.classList.add('editing')" onblur="this.parentElement.classList.remove('editing')">${escapeHtml(p && p.text!=null ? p.text : '')}</textarea>
       <button class="plan-delete" onclick="deletePlan('${which}',${i})">×</button>
     </li>`).join('');
   list.querySelectorAll('.plan-text').forEach(planAutoGrow);
@@ -2198,7 +2221,8 @@ function switchPlanTab(w){
 }
 
 function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function planAutoGrow(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
