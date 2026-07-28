@@ -601,7 +601,7 @@
     transition: all 0.15s;
   }
   .plan-add-btn:hover { background: var(--amber-bg); border-color: var(--amber); }
-  .plan-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .plan-list { list-style: none; display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
   .plan-tip { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.5; }
   .plan-item {
     position: relative;
@@ -2297,6 +2297,7 @@ function movePlan(which, i, dir){
 const PLAN_ACT_W = 120;
 let _swipe = null;
 function planSwipeStart(e, li){
+  if(e.target.closest && e.target.closest('.plan-actions')) return; // 点操作按钮不触发滑动，保证 ↑↓× 必响应
   const front = li.querySelector('.plan-front');
   // 关闭其它已展开项
   document.querySelectorAll('.plan-front.open').forEach(f => { if(f !== front) f.classList.remove('open'); });
@@ -2311,7 +2312,10 @@ function planSwipeMove(e){
   const dy = e.clientY - _swipe.y0;
   if(_swipe.mode === 0){
     if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-    _swipe.mode = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    // 横向更宽容：左滑带一点下漂也认作滑动，避免末行被误判为竖向滚动而收起
+    if(Math.abs(dx) > Math.abs(dy) * 1.4) _swipe.mode = 'h';
+    else if(Math.abs(dy) > Math.abs(dx) * 1.4) _swipe.mode = 'v';
+    else return;
   }
   if(_swipe.mode === 'v'){ planSwipeEnd(); return; } // 竖向滑动交给页面滚动
   e.preventDefault();
@@ -4149,6 +4153,12 @@ function init() {
   loadStyle();
   loadNews(false);
   window.addEventListener('scroll', handleScroll);
+  // 点计划列表外部时收起已展开的操作条
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest || !e.target.closest('.plan-item')){
+      document.querySelectorAll('.plan-front.open').forEach(f => f.classList.remove('open'));
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', init);
