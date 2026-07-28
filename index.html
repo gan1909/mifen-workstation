@@ -275,6 +275,8 @@
     letter-spacing: 2px;
     position: relative;
     z-index: 1;
+    width: 100%;
+    text-align: center;
   }
   .date-display .weekday {
     font-size: 13px;
@@ -1339,7 +1341,8 @@
   .home-topbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    position: relative;
     gap: 10px;
   }
   .topbar-btn {
@@ -1352,7 +1355,9 @@
     display: flex; align-items: center; justify-content: center;
     color: var(--text-secondary);
     flex-shrink: 0;
-    position: relative;
+    position: absolute;
+    right: 0; top: 50%;
+    transform: translateY(-50%);
     z-index: 2;
     transition: all .15s;
   }
@@ -2628,12 +2633,16 @@ function gatherReview(period){
     if(td&&Array.isArray(td.weights)){ const ws=td.weights.filter(w=>inRange(w.date)); if(ws.length) tjLines.push('体重记录：'+ws.map(w=>w.date+' '+w.wt+'kg').join('，')); }
   }catch(e){}
   if(tjLines.length) blocks.push({t:'体術打卡', lines:tjLines});
-  // 书影剧
+  // 书影剧（每件作品在周期内只出一条，优先 doneDate > dropDate > addDate，避免同一作品因多日期重复）
   let mediaLines=[];
   try{
     const ml = JSON.parse(localStorage.getItem('media_data_v2')||'[]');
     if(Array.isArray(ml)) ml.forEach(x=>{
-      [x.addDate,x.doneDate,x.dropDate].forEach(d=>{ if(inRange(d)) mediaLines.push(`[${d}] ${({done:'看完',dropped:'放弃',watching:'在看',want:'想看'})[x.status]||'记录'}《${x.title||''}》${x.rating?(' 评'+x.rating+'星'):''}`); });
+      const cands=[];
+      if(inRange(x.doneDate)) cands.push({d:x.doneDate, t:`看完《${x.title||''}》${x.rating?(' 评'+x.rating+'星'):''}`});
+      if(inRange(x.dropDate)) cands.push({d:x.dropDate, t:`放弃《${x.title||''}》`});
+      if(inRange(x.addDate)) cands.push({d:x.addDate, t:`记录《${x.title||''}》${x.rating?(' 评'+x.rating+'星'):''}`});
+      if(cands.length) mediaLines.push(`[${cands[0].d}] ${cands[0].t}`);
     });
   }catch(e){}
   if(mediaLines.length) blocks.push({t:'书影剧', lines:mediaLines});
@@ -2830,8 +2839,7 @@ function exportBackup() {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const d = new Date(), pad = n => String(n).padStart(2, '0');
-  a.download = `木叶备份_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
+  a.download = `木叶村村民工作站_备份.json`;
   a.href = url;
   document.body.appendChild(a); a.click();
   setTimeout(() => { try { URL.revokeObjectURL(url); a.remove(); } catch (e) {} }, 200);
