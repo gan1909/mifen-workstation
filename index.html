@@ -3551,16 +3551,26 @@ function saveArchiveItem() {
   const title = document.getElementById('archTitle').value.trim();
   const note = document.getElementById('archNote').value.trim();
   if (!title) { showToast('请输入材料名称'); return; }
+  if (!Array.isArray(archiveData[archTab])) archiveData[archTab] = [];
   archiveData[archTab].unshift({ id: suid(), title, note, files: archFilesData });
-  saveArchive();
+  try {
+    saveArchive();
+  } catch (e) {
+    archiveData[archTab].shift();
+    showToast('存储空间不足，保存失败，请精简图片后重试');
+    return;
+  }
   if (JSON.stringify(archiveData).length > 4500000) showToast('资料体积偏大，建议精简图片');
   document.getElementById('archTitle').value='';
   document.getElementById('archNote').value='';
   document.getElementById('archImg').value='';
   document.getElementById('archFileHint').textContent='';
   archFilesData = [];
+  // 清空搜索框，否则新保存的条目会被关键词过滤、列表看似无变化
+  document.getElementById('archiveSearch').value='';
   document.getElementById('archiveForm').classList.remove('show');
   renderArchive();
+  showToast('已保存 ✓');
 }
 function delArchiveItem(id, tab) {
   askConfirm('确定删除该记录？', () => {
