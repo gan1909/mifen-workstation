@@ -3056,7 +3056,7 @@ function studyItemHTML(cat, it, idx) {
     </div>`;
 }
 function findStudy(cat, id) { return studyData[cat].find(x => x.id === id); }
-function toggleStudyExpand(cat, id) { const it = findStudy(cat,id); if(it){ it.expanded = !it.expanded; saveStudy(); renderStudy(); } }
+function toggleStudyExpand(cat, id) { const it = findStudy(cat,id); if(it){ it.expanded = !it.expanded; saveStudy(); if(cat==='mastered') renderMastered(); else renderStudy(); } }
 function showStudyAdd(cat) {
   const row = document.getElementById('studyAdd_' + cat);
   row.style.display = 'flex';
