@@ -266,6 +266,7 @@
     width: 100px; height: 100px;
     background: radial-gradient(circle, rgba(186,117,23,0.08) 0%, transparent 70%);
     border-radius: 50%;
+    pointer-events: none;
   }
   .date-display {
     font-size: 15px;
@@ -1342,15 +1343,17 @@
     gap: 10px;
   }
   .topbar-btn {
-    width: 34px; height: 34px;
+    width: 40px; height: 40px;
     border: 1px solid var(--border);
     background: var(--card-bg);
     border-radius: 50%;
-    font-size: 15px;
+    font-size: 17px;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     color: var(--text-secondary);
     flex-shrink: 0;
+    position: relative;
+    z-index: 2;
     transition: all .15s;
   }
   .topbar-btn:active { transform: scale(.94); background: var(--amber-bg); }
@@ -1385,7 +1388,7 @@
   <section class="header-section">
     <div class="home-topbar">
       <div class="date-display" id="dateDisplay"></div>
-      <button class="topbar-btn" onclick="openBackup()" title="备份与恢复" aria-label="备份与恢复">💾</button>
+      <button class="topbar-btn" onpointerdown="event.preventDefault();openBackup()" onclick="openBackup()" title="备份与恢复" aria-label="备份与恢复">💾</button>
     </div>
     <div class="quote-block">
       <div class="quote-text" id="quoteText"></div>
