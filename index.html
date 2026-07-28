@@ -198,8 +198,7 @@
   .science-card p { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 
   /* ===== 卷宗 ===== */
-  .archive-tabs { display: flex; flex-wrap: nowrap; gap: 6px; margin-bottom: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
-  .archive-tabs::-webkit-scrollbar { display: none; }
+  .archive-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
   .archive-tab { flex: 0 0 auto; min-width: 56px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 2px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 13px; color: var(--text-secondary); background: #fff; cursor: pointer; white-space: nowrap; }
   .archive-tab.add-tab { padding: 8px 12px; }
   .archive-tab .tab-name { line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1157,14 +1156,16 @@
   .m-stat b { font-size: 16px; color: var(--amber); display: block; }
   .m-stat .lb { font-size: 10px; color: var(--text-muted); display: block; }
   .m-stat .bk { font-size: 10px; color: var(--text-secondary); display: block; margin-top: 2px; }
-  .m-list-item { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border); }
+  .m-list-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--border); }
   .m-list-item:last-child { border-bottom: none; }
   .m-thumb { width: 36px; height: 50px; object-fit: cover; border-radius: 5px; background: #EAE4DB; flex-shrink: 0; }
   .m-thumb.ph { display: flex; align-items: center; justify-content: center; font-size: 16px; }
   .m-info { flex: 1; min-width: 0; }
-  .m-info .t { font-size: 13px; font-weight: 600; }
+  .m-info .t { display: flex; align-items: baseline; gap: 4px; font-size: 13px; font-weight: 600; }
+  .m-info .mt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .m-info .d { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-  .m-info .cmt { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .m-info .cmt { font-size: 11px; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m-act-row { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin-top: 5px; }
   .m-act-btn { border: none; border-radius: 10px; font-size: 11px; padding: 4px 8px; cursor: pointer; background: var(--blue-light); color: var(--blue); flex-shrink: 0; }
 
   /* ===== 鑑賞 v3：固定侧边栏 / 独立清单页 / 编辑 / 封面上传 ===== */
@@ -3741,11 +3742,11 @@ function renderMediaPanel() {
       ${timeDot}
       ${x.img ? `<img class="m-thumb" src="${x.img}" loading="lazy" onclick="mPickCover('${x.id}')" title="点击更换封面" onerror="mCoverErr(this,'${x.id}','${m.icon}')">` : `<div class="m-thumb ph" onclick="mPickCover('${x.id}')" title="点击上传封面">${m.icon}</div>`}
       <div class="m-info">
-        <div class="t"><span class="media-type ${x.type}">${m.icon} ${m.name}</span> ${escapeHtml(x.title)}</div>
+        <div class="t"><span class="media-type ${x.type}">${m.icon} ${m.name}</span> <span class="mt">${escapeHtml(x.title)}</span></div>
         ${dt ? `<div class="d">${mediaNavTab === 'done' ? '鑑賞于' : mediaNavTab === 'dropped' ? '放弃于' : '加入于'} ${dt}</div>` : ''}
         ${x.comment ? `<div class="cmt">「${escapeHtml(x.comment)}」</div>` : ''}
+        <div class="m-act-row">${act}</div>
       </div>
-      ${act}
       <button class="icon-btn del" onclick="delMedia('${x.id}')" title="删除">×</button>
     </div>`;
     if (mediaNavTab === 'done' && _mEditId === x.id) {
