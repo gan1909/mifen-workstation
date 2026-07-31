@@ -632,6 +632,13 @@
   .plan-add-btn:hover { background: var(--amber-bg); border-color: var(--amber); }
   .plan-list { list-style: none; display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
   .plan-tip { margin-top: 10px; font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.5; }
+  .plan-sync-row { margin-top: 10px; }
+  .plan-sync-btn {
+    width: 100%; padding: 10px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--amber); background: var(--amber-bg); color: var(--amber);
+    font-size: 13px; font-weight: 600; transition: all .15s;
+  }
+  .plan-sync-btn:active { transform: scale(0.98); opacity: .9; }
   .plan-item {
     position: relative;
     overflow: hidden;
@@ -1492,6 +1499,9 @@
     <ul class="plan-list" id="planList" data-which="today"></ul>
     <p id="planEmpty" style="text-align:center;color:var(--text-muted);font-size:13px;padding:14px 0;">今日无任务，点击 + 添加</p>
     <div class="plan-tip" id="planTip" style="display:none;">✨ 明天来临，这里的内容会自动转入「今日计划」</div>
+    <div class="plan-sync-row" id="planSyncRow" style="display:none;">
+      <button type="button" class="plan-sync-btn" onclick="syncTomorrowToToday()">☀️ 把明日计划同步到今日</button>
+    </div>
   </section>
 
   <!-- ====== Function Cards ====== -->
@@ -1689,7 +1699,7 @@
       <div class="fav-add">
         <input type="text" id="newDishIng" placeholder="食材，逗号分隔，如：番茄, 鸡蛋">
       </div>
-      <div id="userDishList"></div>
+      <p class="empty-hint" style="padding:6px 0 0;">已添加的菜肴不再常驻列出，可在上方搜索框搜索后删除管理</p>
     </section>
 
     <section class="card">
@@ -2418,18 +2428,19 @@ function migratePlans(){
   const out={};
   for(const k in all){ if(Object.prototype.hasOwnProperty.call(all,k)) out[k]=normPlanNode(all[k]); }
   const tk=todayKey();
-  const y=new Date(); y.setDate(y.getDate()-1);
-  const yk=dateKey(y.getFullYear(),y.getMonth()+1,y.getDate());
-  if(out[yk]){
-    const yTom = out[yk].tomorrow||[];
-    if(yTom.length){
-      const cur = out[tk]||{today:[],tomorrow:[]};
-      cur.today = cur.today.concat(yTom);
-      out[tk]=cur;
+  // 跨天同步：今天节点下的「明日计划」自动并入「今日计划」
+  if(out[tk]){
+    const tTom = out[tk].tomorrow||[];
+    if(tTom.length){
+      out[tk].today = (out[tk].today||[]).concat(tTom);
+      out[tk].tomorrow = [];
     }
-    delete out[yk];
   }
   if(!out[tk]) out[tk]={today:[],tomorrow:[]};
+  // 清理今天之前完全为空的日期节点（保留有数据的历史供复盘）
+  for(const k in out){
+    if(k < tk && (!out[k].today || !out[k].today.length) && (!out[k].tomorrow || !out[k].tomorrow.length)) delete out[k];
+  }
   try{ localStorage.setItem('daily_plans', JSON.stringify(out)); }catch(e){}
 }
 function getPlans(which){
@@ -2480,9 +2491,21 @@ function switchPlanTab(w){
   if (inp) inp.placeholder = w==='tomorrow' ? '输入明日任务…' : '输入今日任务…';
   const tip = document.getElementById('planTip');
   if (tip) tip.style.display = w==='tomorrow' ? 'block' : 'none';
+  const syncRow = document.getElementById('planSyncRow');
+  if (syncRow) syncRow.style.display = w==='tomorrow' ? 'block' : 'none';
   const row = document.getElementById('planInputRow');
   if (row) row.style.display = 'none';
   renderPlans(w);
+}
+function syncTomorrowToToday(){
+  const t = getPlans('tomorrow');
+  if(!t.length){ showToast('明日计划为空'); return; }
+  const today = getPlans('today');
+  setPlans('today', today.concat(t.map(x=>({text:x.text, done:false}))));
+  setPlans('tomorrow', []);
+  renderPlans('tomorrow');
+  switchPlanTab('today');
+  showToast('明日计划已同步到今日 ✓');
 }
 
 function escapeHtml(str) {
@@ -3252,12 +3275,11 @@ function loadUserDishes() {
 }
 function getAllDishes() {
   const base = RECIPES.map(r => ({ name:r.name, ing:r.ing, cat:r.cat, user:false }));
-  const mine = userDishes.map(d => ({ name:d.name, ing:d.ing, cat:[], user:true, link:d.link }));
+  const mine = userDishes.map((d,i) => ({ name:d.name, ing:d.ing, cat:[], user:true, link:d.link, idx:i }));
   return base.concat(mine);
 }
 function renderCook() {
   renderCookResults(document.getElementById('cookInput').value);
-  renderUserDishes();
   renderScience();
 }
 function searchRecipes() { renderCookResults(document.getElementById('cookInput').value); }
@@ -3290,10 +3312,12 @@ function renderCookResults(raw) {
         <div class="dish-cats">${(d.ing||[]).map(i=>`<span class="dish-cat">${escapeHtml(i)}</span>`).join('')}</div>
       </div>
       ${d.link?`<a href="${encodeURI(d.link)}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;flex-shrink:0;">链接↗</a>`:''}
+      ${d.user?`<button class="icon-btn del" onclick="delUserDish(${d.idx})" title="删除">×</button>`:''}
     </div>`).join('');
 }
 function renderUserDishes() {
   const el = document.getElementById('userDishList');
+  if (!el) return;
   if (!userDishes.length) { el.innerHTML = '<p class="empty-hint" style="padding:8px 0;">还没有自己添加的菜肴</p>'; return; }
   el.innerHTML = userDishes.map((d,i)=>`
     <div class="user-dish">
