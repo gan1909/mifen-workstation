@@ -1690,14 +1690,14 @@
     <section class="card">
       <div class="cook-section-title">➕ 新增菜肴</div>
       <div class="fav-add">
-        <input type="text" id="newDishLink" placeholder="粘贴链接（可选）">
-      </div>
-      <div class="fav-add">
         <input type="text" id="newDishName" placeholder="菜肴名称">
         <button onclick="addUserDish()">添加</button>
       </div>
       <div class="fav-add">
         <input type="text" id="newDishIng" placeholder="食材，逗号分隔，如：番茄, 鸡蛋">
+      </div>
+      <div class="fav-add">
+        <input type="text" id="newDishLink" placeholder="粘贴链接（可选，可跳转其他平台）">
       </div>
       <p class="empty-hint" style="padding:6px 0 0;">已添加的菜肴不再常驻列出，可在上方搜索框搜索后删除管理</p>
     </section>
@@ -3297,6 +3297,16 @@ function matchRecipes(rawInput) {
     return { d, hit };
   }).filter(x => x.hit > 0).sort((a,b)=>b.hit-a.hit).map(x=>x.d);
 }
+function normalizeUrl(u) {
+  if (!u) return '';
+  u = u.trim();
+  if (!u) return '';
+  // 拦截危险协议，防 XSS
+  if (/^(javascript|data|vbscript):/i.test(u)) return '';
+  // 没有协议则补 https://，确保能跳转外部平台
+  if (!/^[a-z][a-z0-9+.\-]*:/i.test(u)) u = 'https://' + u;
+  return u;
+}
 function renderCookResults(raw) {
   const el = document.getElementById('cookResults');
   const card = document.getElementById('cookResultsCard');
@@ -3311,7 +3321,7 @@ function renderCookResults(raw) {
         <div class="dish-name">${escapeHtml(d.name)}${d.user?' <span class="dish-cat" style="background:var(--amber-bg);color:var(--amber);">我的</span>':''}</div>
         <div class="dish-cats">${(d.ing||[]).map(i=>`<span class="dish-cat">${escapeHtml(i)}</span>`).join('')}</div>
       </div>
-      ${d.link?`<a href="${encodeURI(d.link)}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;text-decoration:none;flex-shrink:0;">链接↗</a>`:''}
+      ${d.link?`<a href="${normalizeUrl(d.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue);font-size:12px;text-decoration:none;flex-shrink:0;">链接↗</a>`:''}
       ${d.user?`<button class="icon-btn del" onclick="delUserDish(${d.idx})" title="删除">×</button>`:''}
     </div>`).join('');
 }
@@ -3322,7 +3332,7 @@ function renderUserDishes() {
   el.innerHTML = userDishes.map((d,i)=>`
     <div class="user-dish">
       <span class="nm">${escapeHtml(d.name)}</span>
-      ${d.link?`<a href="${encodeURI(d.link)}" target="_blank" rel="noopener">链接↗</a>`:''}
+      ${d.link?`<a href="${normalizeUrl(d.link)}" target="_blank" rel="noopener noreferrer">链接↗</a>`:''}
       <button class="icon-btn del" onclick="delUserDish(${i})" title="删除">×</button>
     </div>`).join('');
 }
