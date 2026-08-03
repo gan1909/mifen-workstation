@@ -1435,7 +1435,7 @@
 
 /* 顶部栏：仅汉堡 */
 #view-cook header{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--line);}
-#view-cook .topbar{display:flex;align-items:center;padding:12px 14px;}
+#view-cook .topbar{display:flex;align-items:center;gap:6px;padding:12px 14px;}
 #view-cook .menu-btn{width:40px;height:40px;border:none;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:var(--ink);}
 #view-cook .menu-btn:active{background:var(--paper-2);}
 /* 搜索框：首页垂直居中，结果态回到顶部 */
@@ -1803,6 +1803,7 @@
     <header>
       <div class="topbar">
         <button class="menu-btn" id="ckMenu" aria-label="打开分类目录">☰</button>
+        <button class="menu-btn" id="ckHome" aria-label="回到木叶村首页" onclick="goHome()">🏠</button>
       </div>
     </header>
     <main>
@@ -4751,11 +4752,6 @@ function ckCloseOverlays(){ ckCloseDrawer(); ckDetail.classList.remove('open'); 
 
 function ckRenderTree(){
   ckTree.innerHTML='';
-  const homeItem=document.createElement('div');
-  homeItem.className='tnode lv1';
-  homeItem.innerHTML='<span class="chev leaf"></span><span class="lbl">🏠 木叶村首页</span>';
-  homeItem.onclick=()=>{ ckCloseDrawer(); goHome(); };
-  ckTree.appendChild(homeItem);
 
   const root=ckBuildRoot();
   function row(name,path,hasChild,lv,count){
